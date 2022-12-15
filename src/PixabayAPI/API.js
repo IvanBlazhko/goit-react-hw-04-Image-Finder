@@ -8,5 +8,5 @@ export const fetchImg = async (searchImg, page) => {
       per_page: 12,
     },
   });
-  return response.data.hits;
+  return response.data;
 };

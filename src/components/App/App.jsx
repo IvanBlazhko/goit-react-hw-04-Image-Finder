@@ -2,12 +2,12 @@ import React, { Component } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import Searchbar from '../components/Searchbar/Searchbar';
-import ImageGallery from '../components/ImageGallery/ImageGallery';
-import Button from '../components/Button/Button';
-import Modal from '../components/ImageModal/Modal';
-import { fetchImg } from '../PixabayAPI/API';
-import Spinner from '../components/Spiner/Spinner';
+import Searchbar from '../Searchbar/Searchbar';
+import ImageGallery from '../ImageGallery/ImageGallery';
+import Button from '../Button/Button';
+import Modal from '../ImageModal/Modal';
+import { fetchImg } from '../../PixabayAPI/API';
+import Spinner from '../Spiner/Spinner';
 
 class App extends Component {
   state = {
@@ -15,18 +15,19 @@ class App extends Component {
     selectedImg: '',
     page: 1,
     isLoading: false,
+    showBtn: null,
     images: null,
     status: 'idle',
   };
   async componentDidUpdate(prevProps, prevState, snapshot) {
     const { searchImg, page } = this.state;
-    if (prevState.searchImg !== searchImg || prevState.page < page) {
-      if (prevState.searchImg !== searchImg) this.reset();
+    if (prevState.searchImg !== searchImg || prevState.page !== page) {
       this.setState({ status: 'pending' });
       try {
         const data = await fetchImg(searchImg, page);
         this.setState(prevState => ({
-          images: [...prevState.images, ...data],
+          images: [...prevState.images, ...data.hits],
+          showBtn: page < data.totalHits / 12,
           status: 'resolved',
         }));
       } catch (error) {
@@ -40,12 +41,6 @@ class App extends Component {
       }
     }
   }
-  reset = () => {
-    this.setState({
-      images: [],
-      page: 1,
-    });
-  };
   pageIncrement = () => {
     this.setState(prevState => ({
       page: prevState.page + 1,
@@ -59,6 +54,8 @@ class App extends Component {
   handelImg = inputSearch => {
     this.setState({
       searchImg: inputSearch,
+      images: [],
+      page: 1,
     });
   };
   closeModal = () => {
@@ -67,7 +64,7 @@ class App extends Component {
     });
   };
   render() {
-    const { images, selectedImg, status } = this.state;
+    const { images, selectedImg, status, showBtn } = this.state;
 
     if (status === 'idle') {
       return <Searchbar handelImg={this.handelImg} />;
@@ -94,7 +91,7 @@ class App extends Component {
         <>
           <Searchbar handelImg={this.handelImg} />
           <ImageGallery images={images} getLargeURL={this.getLargeURL} />
-          <Button pageIncrement={this.pageIncrement} />
+          {showBtn && <Button pageIncrement={this.pageIncrement} />}
           {selectedImg && (
             <Modal selectedImg={selectedImg} closeModal={this.closeModal} />
           )}
