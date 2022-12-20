@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -9,96 +9,83 @@ import Modal from '../ImageModal/Modal';
 import { fetchImg } from '../../PixabayAPI/API';
 import Spinner from '../Spiner/Spinner';
 
-class App extends Component {
-  state = {
-    searchImg: '',
-    selectedImg: '',
-    page: 1,
-    isLoading: false,
-    showBtn: null,
-    images: null,
-    status: 'idle',
-  };
-  async componentDidUpdate(prevProps, prevState, snapshot) {
-    const { searchImg, page } = this.state;
-    if (prevState.searchImg !== searchImg || prevState.page !== page) {
-      this.setState({ status: 'pending' });
-      try {
-        const data = await fetchImg(searchImg, page);
-        this.setState(prevState => ({
-          images: [...prevState.images, ...data.hits],
-          showBtn: page < data.totalHits / 12,
-          status: 'resolved',
-        }));
-      } catch (error) {
-        toast.error('Error, please reload the page');
-        this.setState({
-          status: 'rejected',
-          error: 'Error, please reload the page',
-        });
-      } finally {
-        this.setState({ isLoading: false });
-      }
-    }
-  }
-  pageIncrement = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  };
-  getLargeURL = event => {
-    this.setState({
-      selectedImg: event.target.name,
-    });
-  };
-  handelImg = inputSearch => {
-    this.setState({
-      searchImg: inputSearch,
-      images: [],
-      page: 1,
-    });
-  };
-  closeModal = () => {
-    this.setState({
-      selectedImg: '',
-    });
-  };
-  render() {
-    const { images, selectedImg, status, showBtn } = this.state;
+const App = () => {
+  const [searchImg, setSearchImg] = useState('');
+  const [selectedImg, setSelectedImg] = useState('');
+  const [page, setPage] = useState(1);
+  const [showBtn, setShowBtn] = useState(null);
+  const [images, setImages] = useState([]);
+  const [status, setStatus] = useState('idle');
 
-    if (status === 'idle') {
-      return <Searchbar handelImg={this.handelImg} />;
-    }
-    if (status === 'rejected') {
-      return (
-        <>
-          <Searchbar handelImg={this.handelImg} />
-          <ToastContainer autoClose={3000} theme={'colored'} />
-        </>
-      );
-    }
-    if (status === 'pending') {
-      return (
-        <>
-          <Searchbar handelImg={this.handelImg} />
-          <ImageGallery images={images} getLargeURL={this.getLargeURL} />
-          <Spinner />
-        </>
-      );
-    }
-    if (status === 'resolved') {
-      return (
-        <>
-          <Searchbar handelImg={this.handelImg} />
-          <ImageGallery images={images} getLargeURL={this.getLargeURL} />
-          {showBtn && <Button pageIncrement={this.pageIncrement} />}
-          {selectedImg && (
-            <Modal selectedImg={selectedImg} closeModal={this.closeModal} />
-          )}
-        </>
-      );
-    }
+  useEffect(() => {
+    const fetchData = async () => {
+      if (searchImg !== '') {
+        setStatus('pending');
+        try {
+          const data = await fetchImg(searchImg, page);
+          setImages(prevState => [...prevState, ...data.hits]);
+          setShowBtn(page < data.totalHits / 12);
+          setStatus('resolved');
+        } catch (error) {
+          toast.error('Error, please reload the page');
+          setStatus('rejected');
+        } finally {
+        }
+      }
+    };
+    fetchData();
+  }, [searchImg, page]);
+
+  const pageIncrement = () => {
+    setPage(prevState => prevState + 1);
+  };
+
+  const getLargeURL = event => {
+    setSelectedImg(event.target.name);
+  };
+
+  const handelImg = inputSearch => {
+    setSearchImg(inputSearch);
+    setImages([]);
+    setPage(1);
+  };
+
+  const closeModal = () => {
+    setSelectedImg('');
+  };
+
+  if (status === 'idle') {
+    return <Searchbar handelImg={handelImg} />;
   }
-}
+  if (status === 'rejected') {
+    return (
+      <>
+        <Searchbar handelImg={handelImg} />
+        <ToastContainer autoClose={3000} theme={'colored'} />
+      </>
+    );
+  }
+  if (status === 'pending') {
+    return (
+      <>
+        <Searchbar handelImg={handelImg} />
+        <ImageGallery images={images} getLargeURL={getLargeURL} />
+        <Spinner />
+      </>
+    );
+  }
+  if (status === 'resolved') {
+    return (
+      <>
+        <Searchbar handelImg={handelImg} />
+        <ImageGallery images={images} getLargeURL={getLargeURL} />
+        {showBtn && <Button pageIncrement={pageIncrement} />}
+        {selectedImg && (
+          <Modal selectedImg={selectedImg} closeModal={closeModal} />
+        )}
+      </>
+    );
+  }
+};
 
 export default App;
